@@ -4,17 +4,16 @@
  * Reads events from the public.events Supabase table and maps rows
  * into the UI types used across the mobile app.
  *
- * Expected columns:
- *   id, title, city, state, venue, address, date,
- *   description, status, type, featured,
- *   ticket_url, hero_image_url, poster_image_url
+ * Real columns (from admin web app):
+ *   id, slug, title, subtitle, city, venue, address, event_date,
+ *   doors_time, description, hero_image_url, poster_image_url,
+ *   ticket_url, status, featured, created_at, updated_at
  */
 import { supabase } from '../lib/supabase';
 import type {
   Event,
   EventDetail,
   EventStatus,
-  EventType,
   TicketStatus,
 } from '../types/types';
 
@@ -22,35 +21,26 @@ import type {
 
 export interface EventRow {
   id: string;
-  title: string | null;
-  city: string | null;
-  state: string | null;
-  venue: string | null;
+  slug: string | null;
+  title: string;
+  subtitle: string | null;
+  city: string;
+  venue: string;
   address: string | null;
-  date: string | null;
+  event_date: string;
+  doors_time: string | null;
   description: string | null;
-  status: string | null;
-  type: string | null;
-  featured: boolean | null;
-  ticket_url: string | null;
   hero_image_url: string | null;
   poster_image_url: string | null;
+  ticket_url: string | null;
+  status: string;
+  featured: boolean;
 }
 
 const EVENT_COLUMNS =
-  'id, title, city, state, venue, address, date, description, status, type, featured, ticket_url, hero_image_url, poster_image_url';
+  'id, slug, title, subtitle, city, venue, address, event_date, doors_time, description, hero_image_url, poster_image_url, ticket_url, status, featured';
 
 // ─── Helpers ─────────────────────────────────────────────────
-
-const VALID_TYPES: EventType[] = ['MAIN_EVENT', 'OPEN_TOURNAMENT', 'QUALIFIER'];
-
-function normalizeType(value: string | null): EventType | undefined {
-  if (!value) return undefined;
-  const upper = value.toUpperCase().replace(/[\s-]/g, '_');
-  return (VALID_TYPES as string[]).includes(upper)
-    ? (upper as EventType)
-    : undefined;
-}
 
 function normalizeStatus(
   status: string | null,
@@ -70,26 +60,25 @@ function pickImage(
 
 function ticketStatusFrom(row: EventRow): TicketStatus {
   if (row.ticket_url && row.ticket_url.trim().length > 0) return 'available';
-  if (normalizeStatus(row.status, row.date) === 'past') return 'sold_out';
+  if (normalizeStatus(row.status, row.event_date) === 'past') return 'sold_out';
   return 'coming_soon';
 }
 
 // ─── Row → UI mappers ────────────────────────────────────────
 
 export function mapRowToEvent(row: EventRow): Event {
-  const status = normalizeStatus(row.status, row.date);
+  const status = normalizeStatus(row.status, row.event_date);
   const image = pickImage(row.poster_image_url, row.hero_image_url) ?? '';
 
   return {
     id: row.id,
     title: row.title ?? 'Untitled Event',
     city: row.city ?? '',
-    state: row.state ?? '',
-    date: row.date ?? new Date().toISOString(),
+    state: '',
+    date: row.event_date ?? new Date().toISOString(),
     image,
     featured: Boolean(row.featured),
     description: row.description ?? undefined,
-    type: normalizeType(row.type),
     venue: row.venue ?? undefined,
     status,
     ticketsAvailable: Boolean(row.ticket_url && row.ticket_url.trim().length > 0),
@@ -103,22 +92,23 @@ export interface EventDetailWithExtras extends EventDetail {
 
 export function mapRowToEventDetail(row: EventRow): EventDetailWithExtras {
   const heroImage = pickImage(row.hero_image_url, row.poster_image_url) ?? '';
-  const subtitleParts = [
-    [row.city, row.state].filter(Boolean).join(', '),
-    row.venue ?? '',
-  ].filter(Boolean);
+  const fallbackSubtitle = [row.city, row.venue].filter(Boolean).join(' • ');
+  const subtitle =
+    row.subtitle && row.subtitle.trim().length > 0
+      ? row.subtitle
+      : fallbackSubtitle || undefined;
 
   return {
     id: row.id,
     title: row.title ?? 'Untitled Event',
-    subtitle: subtitleParts.length ? subtitleParts.join(' • ') : undefined,
-    type: normalizeType(row.type) ?? 'MAIN_EVENT',
+    subtitle,
+    type: 'MAIN_EVENT',
     city: row.city ?? '',
-    state: row.state ?? '',
+    state: '',
     venue: row.venue ?? '',
     address: row.address ?? '',
-    date: row.date ?? new Date().toISOString(),
-    doorsTime: '',
+    date: row.event_date ?? new Date().toISOString(),
+    doorsTime: row.doors_time ?? '',
     heroImage,
     description: row.description ?? '',
     mapImage: '',
@@ -141,11 +131,11 @@ export async function listUpcomingEvents(): Promise<Event[]> {
   const { data, error } = await supabase
     .from('events')
     .select(EVENT_COLUMNS)
-    .or(`status.eq.upcoming,date.gte.${nowIso}`)
-    .order('date', { ascending: true });
+    .or(`status.eq.upcoming,event_date.gte.${nowIso}`)
+    .order('event_date', { ascending: true });
 
   if (error) throw new Error(error.message);
-  return (data ?? []).map(mapRowToEvent);
+  return (data ?? []).map((row) => mapRowToEvent(row as EventRow));
 }
 
 export async function listPastEvents(): Promise<Event[]> {
@@ -153,11 +143,11 @@ export async function listPastEvents(): Promise<Event[]> {
   const { data, error } = await supabase
     .from('events')
     .select(EVENT_COLUMNS)
-    .or(`status.eq.past,date.lt.${nowIso}`)
-    .order('date', { ascending: false });
+    .or(`status.eq.past,event_date.lt.${nowIso}`)
+    .order('event_date', { ascending: false });
 
   if (error) throw new Error(error.message);
-  return (data ?? []).map(mapRowToEvent);
+  return (data ?? []).map((row) => mapRowToEvent(row as EventRow));
 }
 
 export async function getFeaturedEvent(): Promise<Event | null> {
@@ -166,8 +156,8 @@ export async function getFeaturedEvent(): Promise<Event | null> {
     .from('events')
     .select(EVENT_COLUMNS)
     .eq('featured', true)
-    .gte('date', nowIso)
-    .order('date', { ascending: true })
+    .gte('event_date', nowIso)
+    .order('event_date', { ascending: true })
     .limit(1)
     .maybeSingle();
 

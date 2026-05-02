@@ -110,7 +110,8 @@ export default function EventCard({ event }: EventCardProps) {
           <View style={styles.metaRow}>
             <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
             <Text style={styles.metaText}>
-              {event.city}, {event.state} • {event.venue}
+              {[event.city, event.state].filter(Boolean).join(', ')}
+              {event.venue ? ` • ${event.venue}` : ''}
             </Text>
           </View>
         )}
@@ -127,9 +128,9 @@ export default function EventCard({ event }: EventCardProps) {
         {!isMainEvent && (
           <>
             <Text style={styles.metaTextSmall}>
-              {event.city}, {event.state} • {formatEventDate(event.date).split(' • ')[0]}
+              {[event.city, event.state].filter(Boolean).join(', ')} • {formatEventDate(event.date).split(' • ')[0]}
             </Text>
-            <Text style={styles.venueText}>{event.venue}</Text>
+            {event.venue ? <Text style={styles.venueText}>{event.venue}</Text> : null}
           </>
         )}
 

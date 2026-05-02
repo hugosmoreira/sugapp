@@ -19,7 +19,7 @@ export interface Event {
   id: string;
   title: string;
   city: string;
-  state: string;
+  state?: string;
   date: string;
   image: number | string;
   featured: boolean;
@@ -38,7 +38,7 @@ export interface EventDetail {
   subtitle?: string;
   type: EventType;
   city: string;
-  state: string;
+  state?: string;
   venue: string;
   address: string;
   date: string;

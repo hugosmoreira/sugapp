@@ -95,7 +95,7 @@ export default function FeaturedEventBanner({ event, onPress }: FeaturedEventBan
         ) : null}
 
         <Text style={styles.meta}>
-          {event.city}, {event.state} • {formattedDate}
+          {[event.city, event.state].filter(Boolean).join(', ')} • {formattedDate}
         </Text>
 
         {/* Countdown */}

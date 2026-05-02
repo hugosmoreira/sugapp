@@ -33,7 +33,7 @@ export default function EventCard({ event, onPress }: EventCardProps) {
           {event.title}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {formattedDate} • {event.city}, {event.state}
+          {formattedDate} • {[event.city, event.state].filter(Boolean).join(', ')}
         </Text>
       </View>
     </TouchableOpacity>
