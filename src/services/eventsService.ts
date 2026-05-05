@@ -4,12 +4,10 @@
  * Reads events from the public.events Supabase table and maps rows
  * into the UI types used across the mobile app.
  *
- * Real columns (from admin web app):
- *   id, slug, title, subtitle, city, venue, address, event_date,
- *   doors_time, description, hero_image_url, poster_image_url,
- *   ticket_url, status, featured, created_at, updated_at
+ * Supabase row shape lives in `../types/database.ts` (single source of truth).
  */
 import { supabase } from '../lib/supabase';
+import type { EventRow } from '../types/database';
 import type {
   Event,
   EventDetail,
@@ -17,28 +15,13 @@ import type {
   TicketStatus,
 } from '../types/types';
 
-// ─── Row shape from Supabase ─────────────────────────────────
-
-export interface EventRow {
-  id: string;
-  slug: string | null;
-  title: string;
-  subtitle: string | null;
-  city: string;
-  venue: string;
-  address: string | null;
-  event_date: string;
-  doors_time: string | null;
-  description: string | null;
-  hero_image_url: string | null;
-  poster_image_url: string | null;
-  ticket_url: string | null;
-  status: string;
-  featured: boolean;
-}
-
 const EVENT_COLUMNS =
-  'id, slug, title, subtitle, city, venue, address, event_date, doors_time, description, hero_image_url, poster_image_url, ticket_url, status, featured';
+  'id, title, subtitle, city, venue, address, event_date, doors_time, description, hero_image_url, poster_image_url, ticket_url, status, featured, created_at, updated_at';
+
+const UPCOMING_FILTER = (nowIso: string) =>
+  `status.in.(upcoming,live),event_date.gte.${nowIso}`;
+const PAST_FILTER = (nowIso: string) =>
+  `status.in.(past,completed),event_date.lt.${nowIso}`;
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -46,7 +29,8 @@ function normalizeStatus(
   status: string | null,
   date: string | null,
 ): EventStatus {
-  if (status === 'past' || status === 'upcoming') return status;
+  if (status === 'upcoming' || status === 'live') return 'upcoming';
+  if (status === 'past' || status === 'completed') return 'past';
   if (!date) return 'upcoming';
   return new Date(date).getTime() < Date.now() ? 'past' : 'upcoming';
 }
@@ -62,6 +46,10 @@ function ticketStatusFrom(row: EventRow): TicketStatus {
   if (row.ticket_url && row.ticket_url.trim().length > 0) return 'available';
   if (normalizeStatus(row.status, row.event_date) === 'past') return 'sold_out';
   return 'coming_soon';
+}
+
+function logError(scope: string, error: unknown) {
+  console.error(`[events] ${scope}`, error);
 }
 
 // ─── Row → UI mappers ────────────────────────────────────────
@@ -81,7 +69,9 @@ export function mapRowToEvent(row: EventRow): Event {
     description: row.description ?? undefined,
     venue: row.venue ?? undefined,
     status,
-    ticketsAvailable: Boolean(row.ticket_url && row.ticket_url.trim().length > 0),
+    ticketsAvailable: Boolean(
+      row.ticket_url && row.ticket_url.trim().length > 0,
+    ),
   };
 }
 
@@ -131,10 +121,14 @@ export async function listUpcomingEvents(): Promise<Event[]> {
   const { data, error } = await supabase
     .from('events')
     .select(EVENT_COLUMNS)
-    .or(`status.eq.upcoming,event_date.gte.${nowIso}`)
+    .or(UPCOMING_FILTER(nowIso))
     .order('event_date', { ascending: true });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    logError('listUpcomingEvents', error);
+    throw new Error(error.message);
+  }
+  console.info('[events] listUpcomingEvents rows=', data?.length ?? 0);
   return (data ?? []).map((row) => mapRowToEvent(row as EventRow));
 }
 
@@ -143,10 +137,14 @@ export async function listPastEvents(): Promise<Event[]> {
   const { data, error } = await supabase
     .from('events')
     .select(EVENT_COLUMNS)
-    .or(`status.eq.past,event_date.lt.${nowIso}`)
+    .or(PAST_FILTER(nowIso))
     .order('event_date', { ascending: false });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    logError('listPastEvents', error);
+    throw new Error(error.message);
+  }
+  console.info('[events] listPastEvents rows=', data?.length ?? 0);
   return (data ?? []).map((row) => mapRowToEvent(row as EventRow));
 }
 
@@ -156,12 +154,16 @@ export async function getFeaturedEvent(): Promise<Event | null> {
     .from('events')
     .select(EVENT_COLUMNS)
     .eq('featured', true)
-    .gte('event_date', nowIso)
+    .or(UPCOMING_FILTER(nowIso))
     .order('event_date', { ascending: true })
     .limit(1)
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    logError('getFeaturedEvent', error);
+    throw new Error(error.message);
+  }
+  console.info('[events] getFeaturedEvent found=', Boolean(data));
   return data ? mapRowToEvent(data as EventRow) : null;
 }
 
@@ -174,6 +176,10 @@ export async function getEventById(
     .eq('id', id)
     .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    logError('getEventById', error);
+    throw new Error(error.message);
+  }
+  console.info('[events] getEventById id=', id, 'found=', Boolean(data));
   return data ? mapRowToEventDetail(data as EventRow) : null;
 }
