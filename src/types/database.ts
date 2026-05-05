@@ -1,36 +1,38 @@
 /**
  * SUG Grappling — Supabase Row Types
  *
- * Single source of truth for the row shapes returned by Supabase.
- * Services convert these rows into the UI types in `./types.ts`.
- *
- * Keep these in sync with the actual Supabase schema. If a column is
- * missing here, services should not select it.
+ * Services use `select('*')` on events so Postgres never rejects the query
+ * when the admin schema uses different column names than older mobile code.
+ * Mappers read rows via pickers that try several common aliases.
  */
 
-// ─── Events (confirmed schema) ───────────────────────────────
+// ─── Events (loose row — actual columns depend on admin schema) ─
 
-export interface EventRow {
+/** Raw row from `from('events').select('*')`. All known fields optional. */
+export interface EventRow extends Record<string, unknown> {
   id: string;
-  title: string;
-  subtitle: string | null;
-  city: string;
-  venue: string;
-  address: string | null;
-  event_date: string;
-  doors_time: string | null;
-  description: string | null;
-  hero_image_url: string | null;
-  poster_image_url: string | null;
-  ticket_url: string | null;
-  /**
-   * Admin app emits one of: upcoming | live | past | completed.
-   * Anything else is treated by date.
-   */
-  status: 'upcoming' | 'live' | 'past' | 'completed' | string;
-  featured: boolean;
-  created_at: string;
-  updated_at: string;
+  title?: string | null;
+  name?: string | null;
+  event_title?: string | null;
+  event_name?: string | null;
+  subtitle?: string | null;
+  city?: string | null;
+  venue?: string | null;
+  address?: string | null;
+  event_date?: string | null;
+  date?: string | null;
+  starts_at?: string | null;
+  start_date?: string | null;
+  doors_time?: string | null;
+  description?: string | null;
+  hero_image_url?: string | null;
+  poster_image_url?: string | null;
+  ticket_url?: string | null;
+  status?: string | null;
+  featured?: boolean | null;
+  is_featured?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 // ─── Athletes (loose — exact schema not yet confirmed) ───────

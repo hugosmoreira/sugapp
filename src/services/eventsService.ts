@@ -1,10 +1,9 @@
 /**
  * SUG Grappling — Events Service
  *
- * Reads events from the public.events Supabase table and maps rows
- * into the UI types used across the mobile app.
- *
- * Supabase row shape lives in `../types/database.ts` (single source of truth).
+ * Uses `select('*')` and in-memory filter/sort so we never ask Postgres for
+ * columns that don't exist (avoids e.g. "column events.title does not exist").
+ * Field pickers try common admin naming variants.
  */
 import { supabase } from '../lib/supabase';
 import type { EventRow } from '../types/database';
@@ -15,36 +14,79 @@ import type {
   TicketStatus,
 } from '../types/types';
 
-const EVENT_COLUMNS =
-  'id, title, subtitle, city, venue, address, event_date, doors_time, description, hero_image_url, poster_image_url, ticket_url, status, featured, created_at, updated_at';
+function firstNonEmptyString(
+  row: Record<string, unknown>,
+  keys: string[],
+): string | undefined {
+  for (const k of keys) {
+    const v = row[k];
+    if (typeof v === 'string' && v.trim().length > 0) return v;
+  }
+  return undefined;
+}
 
-const UPCOMING_FILTER = (nowIso: string) =>
-  `status.in.(upcoming,live),event_date.gte.${nowIso}`;
-const PAST_FILTER = (nowIso: string) =>
-  `status.in.(past,completed),event_date.lt.${nowIso}`;
+function pickEventDate(row: EventRow): string | null {
+  return (
+    firstNonEmptyString(row, [
+      'event_date',
+      'date',
+      'starts_at',
+      'start_date',
+      'event_datetime',
+      'start_time',
+    ]) ?? null
+  );
+}
+
+function pickTitle(row: EventRow): string {
+  return (
+    firstNonEmptyString(row, [
+      'title',
+      'name',
+      'event_title',
+      'event_name',
+      'label',
+      'headline',
+    ]) ?? 'Untitled Event'
+  );
+}
+
+function pickFeatured(row: EventRow): boolean {
+  if (typeof row.featured === 'boolean') return row.featured;
+  if (typeof row.is_featured === 'boolean') return row.is_featured;
+  const raw: unknown = row.featured ?? row.is_featured;
+  if (raw === true || raw === 1) return true;
+  if (typeof raw === 'string' && raw.toLowerCase() === 'true') return true;
+  return false;
+}
 
 // ─── Helpers ─────────────────────────────────────────────────
 
 function normalizeStatus(
-  status: string | null,
+  status: string | null | undefined,
   date: string | null,
 ): EventStatus {
-  if (status === 'upcoming' || status === 'live') return 'upcoming';
-  if (status === 'past' || status === 'completed') return 'past';
+  const s = status?.toLowerCase();
+  if (s === 'upcoming' || s === 'live') return 'upcoming';
+  if (s === 'past' || s === 'completed') return 'past';
   if (!date) return 'upcoming';
   return new Date(date).getTime() < Date.now() ? 'past' : 'upcoming';
 }
 
 function pickImage(
-  primary: string | null,
-  fallback: string | null,
+  primary: string | undefined,
+  fallback: string | undefined,
 ): string | undefined {
-  return primary?.trim() || fallback?.trim() || undefined;
+  const a = primary?.trim();
+  const b = fallback?.trim();
+  return a || b || undefined;
 }
 
 function ticketStatusFrom(row: EventRow): TicketStatus {
-  if (row.ticket_url && row.ticket_url.trim().length > 0) return 'available';
-  if (normalizeStatus(row.status, row.event_date) === 'past') return 'sold_out';
+  const ticket = firstNonEmptyString(row, ['ticket_url', 'tickets_url', 'ticket_link']);
+  if (ticket) return 'available';
+  if (normalizeStatus(row.status as string | undefined, pickEventDate(row)) === 'past')
+    return 'sold_out';
   return 'coming_soon';
 }
 
@@ -52,26 +94,52 @@ function logError(scope: string, error: unknown) {
   console.error(`[events] ${scope}`, error);
 }
 
+async function fetchAllEventRows(): Promise<EventRow[]> {
+  const { data, error } = await supabase.from('events').select('*');
+
+  if (error) {
+    logError('fetchAllEventRows', error);
+    throw new Error(error.message);
+  }
+  console.info('[events] fetchAllEventRows rows=', data?.length ?? 0);
+  return (data ?? []) as EventRow[];
+}
+
+function eventTimestamp(row: EventRow): number {
+  const d = pickEventDate(row);
+  if (!d) return 0;
+  const t = new Date(d).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
 // ─── Row → UI mappers ────────────────────────────────────────
 
 export function mapRowToEvent(row: EventRow): Event {
-  const status = normalizeStatus(row.status, row.event_date);
-  const image = pickImage(row.poster_image_url, row.hero_image_url) ?? '';
+  const status = normalizeStatus(row.status as string | undefined, pickEventDate(row));
+  const hero = firstNonEmptyString(row, ['hero_image_url', 'hero_url', 'image_url']);
+  const poster = firstNonEmptyString(row, [
+    'poster_image_url',
+    'poster_url',
+    'cover_image_url',
+    'thumbnail_url',
+  ]);
+  const image = pickImage(poster, hero) ?? '';
+
+  const ticketUrl = firstNonEmptyString(row, ['ticket_url', 'tickets_url', 'ticket_link']);
 
   return {
-    id: row.id,
-    title: row.title ?? 'Untitled Event',
-    city: row.city ?? '',
+    id: String(row.id),
+    title: pickTitle(row),
+    city: firstNonEmptyString(row, ['city', 'location', 'city_name']) ?? '',
     state: '',
-    date: row.event_date ?? new Date().toISOString(),
+    date: pickEventDate(row) ?? new Date().toISOString(),
     image,
-    featured: Boolean(row.featured),
-    description: row.description ?? undefined,
-    venue: row.venue ?? undefined,
+    featured: pickFeatured(row),
+    description:
+      firstNonEmptyString(row, ['description', 'body', 'summary', 'details']) ?? undefined,
+    venue: firstNonEmptyString(row, ['venue', 'venue_name', 'location_name']) ?? undefined,
     status,
-    ticketsAvailable: Boolean(
-      row.ticket_url && row.ticket_url.trim().length > 0,
-    ),
+    ticketsAvailable: Boolean(ticketUrl),
   };
 }
 
@@ -81,26 +149,39 @@ export interface EventDetailWithExtras extends EventDetail {
 }
 
 export function mapRowToEventDetail(row: EventRow): EventDetailWithExtras {
-  const heroImage = pickImage(row.hero_image_url, row.poster_image_url) ?? '';
-  const fallbackSubtitle = [row.city, row.venue].filter(Boolean).join(' • ');
+  const heroRaw = firstNonEmptyString(row, ['hero_image_url', 'hero_url', 'image_url']);
+  const posterRaw = firstNonEmptyString(row, [
+    'poster_image_url',
+    'poster_url',
+    'cover_image_url',
+    'thumbnail_url',
+  ]);
+  const heroImage = pickImage(heroRaw, posterRaw) ?? '';
+
+  const city = firstNonEmptyString(row, ['city', 'location', 'city_name']) ?? '';
+  const venue = firstNonEmptyString(row, ['venue', 'venue_name', 'location_name']) ?? '';
+  const sub = firstNonEmptyString(row, ['subtitle', 'tagline']);
+  const fallbackSubtitle = [city, venue].filter(Boolean).join(' • ');
   const subtitle =
-    row.subtitle && row.subtitle.trim().length > 0
-      ? row.subtitle
-      : fallbackSubtitle || undefined;
+    sub && sub.trim().length > 0 ? sub : fallbackSubtitle || undefined;
+
+  const ticketUrl = firstNonEmptyString(row, ['ticket_url', 'tickets_url', 'ticket_link']);
 
   return {
-    id: row.id,
-    title: row.title ?? 'Untitled Event',
+    id: String(row.id),
+    title: pickTitle(row),
     subtitle,
     type: 'MAIN_EVENT',
-    city: row.city ?? '',
+    city,
     state: '',
-    venue: row.venue ?? '',
-    address: row.address ?? '',
-    date: row.event_date ?? new Date().toISOString(),
-    doorsTime: row.doors_time ?? '',
+    venue,
+    address: firstNonEmptyString(row, ['address', 'street_address', 'venue_address']) ?? '',
+    date: pickEventDate(row) ?? new Date().toISOString(),
+    doorsTime:
+      firstNonEmptyString(row, ['doors_time', 'doors_open', 'doors']) ?? '',
     heroImage,
-    description: row.description ?? '',
+    description:
+      firstNonEmptyString(row, ['description', 'body', 'summary', 'details']) ?? '',
     mapImage: '',
     ruleset: {
       format: 'Sub Only',
@@ -109,62 +190,52 @@ export function mapRowToEventDetail(row: EventRow): EventDetailWithExtras {
       uniform: 'No-Gi',
     },
     ticketStatus: ticketStatusFrom(row),
-    ticketUrl: row.ticket_url ?? undefined,
-    posterImageUrl: row.poster_image_url ?? undefined,
+    ticketUrl: ticketUrl ?? undefined,
+    posterImageUrl: posterRaw ?? undefined,
   };
 }
 
 // ─── Public API ──────────────────────────────────────────────
 
 export async function listUpcomingEvents(): Promise<Event[]> {
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('events')
-    .select(EVENT_COLUMNS)
-    .or(UPCOMING_FILTER(nowIso))
-    .order('event_date', { ascending: true });
-
-  if (error) {
-    logError('listUpcomingEvents', error);
-    throw new Error(error.message);
-  }
-  console.info('[events] listUpcomingEvents rows=', data?.length ?? 0);
-  return (data ?? []).map((row) => mapRowToEvent(row as EventRow));
+  const rows = await fetchAllEventRows();
+  const filtered = rows.filter(
+    (row) =>
+      normalizeStatus(row.status as string | undefined, pickEventDate(row)) ===
+      'upcoming',
+  );
+  filtered.sort((a, b) => eventTimestamp(a) - eventTimestamp(b));
+  console.info('[events] listUpcomingEvents rows=', filtered.length);
+  return filtered.map(mapRowToEvent);
 }
 
 export async function listPastEvents(): Promise<Event[]> {
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('events')
-    .select(EVENT_COLUMNS)
-    .or(PAST_FILTER(nowIso))
-    .order('event_date', { ascending: false });
-
-  if (error) {
-    logError('listPastEvents', error);
-    throw new Error(error.message);
-  }
-  console.info('[events] listPastEvents rows=', data?.length ?? 0);
-  return (data ?? []).map((row) => mapRowToEvent(row as EventRow));
+  const rows = await fetchAllEventRows();
+  const filtered = rows.filter(
+    (row) =>
+      normalizeStatus(row.status as string | undefined, pickEventDate(row)) === 'past',
+  );
+  filtered.sort((a, b) => eventTimestamp(b) - eventTimestamp(a));
+  console.info('[events] listPastEvents rows=', filtered.length);
+  return filtered.map(mapRowToEvent);
 }
 
 export async function getFeaturedEvent(): Promise<Event | null> {
-  const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
-    .from('events')
-    .select(EVENT_COLUMNS)
-    .eq('featured', true)
-    .or(UPCOMING_FILTER(nowIso))
-    .order('event_date', { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    logError('getFeaturedEvent', error);
-    throw new Error(error.message);
+  const rows = await fetchAllEventRows();
+  const candidates = rows.filter((row) => {
+    if (!pickFeatured(row)) return false;
+    return (
+      normalizeStatus(row.status as string | undefined, pickEventDate(row)) === 'upcoming'
+    );
+  });
+  if (candidates.length === 0) {
+    console.info('[events] getFeaturedEvent found=', false);
+    return null;
   }
-  console.info('[events] getFeaturedEvent found=', Boolean(data));
-  return data ? mapRowToEvent(data as EventRow) : null;
+  candidates.sort((a, b) => eventTimestamp(a) - eventTimestamp(b));
+  const winner = candidates[0];
+  console.info('[events] getFeaturedEvent found=', true);
+  return mapRowToEvent(winner);
 }
 
 export async function getEventById(
@@ -172,7 +243,7 @@ export async function getEventById(
 ): Promise<EventDetailWithExtras | null> {
   const { data, error } = await supabase
     .from('events')
-    .select(EVENT_COLUMNS)
+    .select('*')
     .eq('id', id)
     .maybeSingle();
 
