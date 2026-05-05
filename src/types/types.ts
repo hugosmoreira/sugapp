@@ -56,13 +56,17 @@ export interface Athlete {
   id: string;
   name: string;
   image: number | string;
+  weightClass?: string;
+  record?: string;
+  rank?: number;
+  status?: string;
+  // legacy/optional fields used by the home-screen mock and filters
   gym?: string;
   country?: string;
   countryCode?: string;
   ranking?: number;
   academy?: string;
   rating?: number;
-  weightClass?: string;
   category?: AthleteCategory;
 }
 
@@ -96,16 +100,21 @@ export interface EventParticipated {
 export interface AthleteProfile {
   id: string;
   name: string;
-  nickname?: string;
-  academy: string;
-  country: string;
-  belt: string;
   avatar: number | string;
-  bio: string;
-  stats: AthleteStats;
+  weightClass?: string;
+  record?: string;
+  rank?: number;
+  status?: string;
+  // legacy/optional fields preserved so existing mock data still typechecks
+  nickname?: string;
+  academy?: string;
+  country?: string;
+  belt?: string;
+  bio?: string;
+  stats?: AthleteStats;
   upcomingFight?: UpcomingFight;
-  pastFights: PastFight[];
-  eventsParticipated: EventParticipated[];
+  pastFights?: PastFight[];
+  eventsParticipated?: EventParticipated[];
 }
 
 // ─── News ────────────────────────────────────────────────────
@@ -115,9 +124,10 @@ export interface NewsArticle {
   id: string;
   title: string;
   category: string;
+  /** cover_image_url from Supabase. Empty string when not provided. */
   image: number | string;
   publishedAt: string;
-  summary?: string;
+  excerpt?: string;
   date?: string;
   featured?: boolean;
 }

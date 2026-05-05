@@ -1,36 +1,101 @@
 /**
  * Athlete Profile Screen — Dynamic route [id]
  *
- * Full-screen athlete profile with avatar, stats, bio, upcoming fight,
- * past fights, and events participated carousel.
+ * Loads the athlete by Supabase id and renders avatar, name, weight class,
+ * rank, record, and status. Sections without backing data are omitted.
  */
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, typography, fontWeight } from '../../src/constants/theme';
+import { colors, spacing, typography, fontWeight, radius } from '../../src/constants/theme';
 
 import AthleteProfileHeader from '../../src/components/athlete/AthleteProfileHeader';
-import AthleteStats from '../../src/components/athlete/AthleteStats';
-import AthleteBio from '../../src/components/athlete/AthleteBio';
-import UpcomingFightCard from '../../src/components/athlete/UpcomingFightCard';
-import PastFightRow from '../../src/components/athlete/PastFightRow';
-import EventsParticipatedCarousel from '../../src/components/athlete/EventsParticipatedCarousel';
-import { athleteProfiles } from '../../src/data/mockData';
+import { getAthleteById } from '../../src/services/athletesService';
+import type { AthleteProfile } from '../../src/types/types';
+
+interface StatTile {
+  label: string;
+  value: string;
+}
+
+function buildStatTiles(athlete: AthleteProfile): StatTile[] {
+  const tiles: StatTile[] = [];
+  if (athlete.rank !== undefined) {
+    tiles.push({ label: 'RANK', value: `#${athlete.rank}` });
+  }
+  if (athlete.record) {
+    tiles.push({ label: 'RECORD', value: athlete.record });
+  }
+  if (athlete.status) {
+    tiles.push({ label: 'STATUS', value: athlete.status.toUpperCase() });
+  }
+  return tiles;
+}
 
 export default function AthleteProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const athlete = athleteProfiles[id ?? ''];
+  const [athlete, setAthlete] = useState<AthleteProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAthlete = useCallback(async () => {
+    if (!id) {
+      setError('Missing athlete id');
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getAthleteById(id);
+      setAthlete(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load athlete.');
+      setAthlete(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    fetchAthlete();
+  }, [fetchAthlete]);
+
+  if (loading) {
+    return (
+      <View style={[styles.screen, styles.center, { paddingTop: insets.top }]}>
+        <ActivityIndicator size="large" color={colors.gold} />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.screen, styles.center, { paddingTop: insets.top }]}>
+        <Ionicons name="alert-circle-outline" size={36} color={colors.gold} />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={fetchAthlete}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.retryText}>RETRY</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (!athlete) {
     return (
@@ -43,6 +108,8 @@ export default function AthleteProfileScreen() {
     );
   }
 
+  const tiles = buildStatTiles(athlete);
+
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -50,7 +117,6 @@ export default function AthleteProfileScreen() {
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + spacing.xs }]}>
           <TouchableOpacity
             style={styles.headerBtn}
@@ -65,37 +131,19 @@ export default function AthleteProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Profile */}
         <AthleteProfileHeader athlete={athlete} />
 
-        {/* Stats */}
-        <AthleteStats stats={athlete.stats} />
-
-        {/* Bio */}
-        <AthleteBio bio={athlete.bio} />
-
-        {/* Upcoming Fight */}
-        {athlete.upcomingFight && (
-          <UpcomingFightCard fight={athlete.upcomingFight} />
-        )}
-
-        {/* Past Fights */}
-        <View style={styles.pastFightsSection}>
-          <View style={styles.sectionHeadingRow}>
-            <Ionicons name="time-outline" size={18} color={colors.textPrimary} />
-            <Text style={styles.sectionHeading}>Past Fights</Text>
-          </View>
-          <View style={styles.pastFightsList}>
-            {athlete.pastFights.map((fight) => (
-              <PastFightRow key={fight.id} fight={fight} />
+        {tiles.length > 0 && (
+          <View style={styles.tileRow}>
+            {tiles.map((tile) => (
+              <View key={tile.label} style={styles.tile}>
+                <Text style={styles.tileValue}>{tile.value}</Text>
+                <Text style={styles.tileLabel}>{tile.label}</Text>
+              </View>
             ))}
           </View>
-        </View>
+        )}
 
-        {/* Events Participated */}
-        <EventsParticipatedCarousel events={athlete.eventsParticipated} />
-
-        {/* Bottom spacer */}
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
@@ -111,10 +159,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   center: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
   },
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -132,11 +182,16 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.semiBold,
     color: colors.textPrimary,
   },
-  // Not found
   notFoundText: {
     fontSize: typography.h3,
     fontWeight: fontWeight.bold,
     color: colors.textPrimary,
+  },
+  errorText: {
+    fontSize: typography.bodySmall,
+    fontWeight: fontWeight.medium,
+    color: colors.muted,
+    textAlign: 'center',
   },
   backLink: {
     marginTop: spacing.lg,
@@ -146,24 +201,45 @@ const styles = StyleSheet.create({
     color: colors.gold,
     fontWeight: fontWeight.semiBold,
   },
-  // Past Fights
-  pastFightsSection: {
+  retryButton: {
+    marginTop: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: colors.gold,
+  },
+  retryText: {
+    fontSize: typography.caption,
+    fontWeight: fontWeight.bold,
+    color: colors.gold,
+    letterSpacing: 1.5,
+  },
+  tileRow: {
+    flexDirection: 'row',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
     gap: spacing.md,
   },
-  sectionHeadingRow: {
-    flexDirection: 'row',
+  tile: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  sectionHeading: {
+  tileValue: {
     fontSize: typography.h3,
     fontWeight: fontWeight.bold,
-    color: colors.textPrimary,
+    color: colors.gold,
   },
-  pastFightsList: {
-    gap: spacing.sm,
+  tileLabel: {
+    fontSize: typography.micro,
+    fontWeight: fontWeight.semiBold,
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
   },
   bottomSpacer: {
     height: spacing.xxxxl,

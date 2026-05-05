@@ -1,8 +1,7 @@
 /**
- * AthleteCard — Grid card with portrait, country flag overlay,
- * name, academy, and rating row
+ * AthleteCard — Grid card with portrait, name, weight class, and record/rank line
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,10 +21,20 @@ interface AthleteCardProps {
 
 export default function AthleteCard({ athlete }: AthleteCardProps) {
   const router = useRouter();
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasImage =
+    typeof athlete.image === 'number' ||
+    (typeof athlete.image === 'string' && athlete.image.trim().length > 0);
+  const showPlaceholder = !hasImage || imageFailed;
 
   const handlePress = () => {
     router.push(`/athlete/${athlete.id}` as const);
   };
+
+  const metaParts: string[] = [];
+  if (athlete.rank !== undefined) metaParts.push(`#${athlete.rank}`);
+  if (athlete.record) metaParts.push(athlete.record);
+  const metaLine = metaParts.join(' • ');
 
   return (
     <TouchableOpacity
@@ -33,42 +42,40 @@ export default function AthleteCard({ athlete }: AthleteCardProps) {
       onPress={handlePress}
       activeOpacity={0.85}
     >
-      {/* Image + flag overlay */}
       <View style={styles.imageContainer}>
-        <Image
-          source={typeof athlete.image === 'number' ? athlete.image : { uri: athlete.image }}
-          style={styles.image}
-          contentFit="cover"
-          transition={200}
-        />
+        {showPlaceholder ? (
+          <View style={[styles.image, styles.placeholder]}>
+            <Ionicons name="person-outline" size={36} color={colors.muted} />
+          </View>
+        ) : (
+          <Image
+            source={typeof athlete.image === 'number' ? athlete.image : { uri: athlete.image }}
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+            onError={() => setImageFailed(true)}
+          />
+        )}
         <LinearGradient
           colors={['transparent', 'rgba(21,21,21,0.6)']}
           style={styles.imageGradient}
         />
-        {/* Country flag */}
-        {athlete.countryCode && (
-          <View style={styles.flagBadge}>
-            <Text style={styles.flagText}>{athlete.countryCode}</Text>
-          </View>
-        )}
       </View>
 
-      {/* Info below image */}
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
           {athlete.name}
         </Text>
-        {athlete.academy && (
-          <Text style={styles.academy} numberOfLines={1}>
-            {athlete.academy.toUpperCase()}
+        {athlete.weightClass ? (
+          <Text style={styles.weightClass} numberOfLines={1}>
+            {athlete.weightClass.toUpperCase()}
           </Text>
-        )}
-        <View style={styles.ratingRow}>
-          <Ionicons name="star" size={12} color={colors.gold} />
-          <Text style={styles.ratingText}>
-            {athlete.rating?.toFixed(1)} • {athlete.weightClass}
+        ) : null}
+        {metaLine ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {metaLine}
           </Text>
-        </View>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -91,26 +98,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  placeholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAlt,
+  },
   imageGradient: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     height: 40,
-  },
-  flagBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(21,21,21,0.7)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  flagText: {
-    fontSize: 16,
   },
   info: {
     padding: spacing.md,
@@ -121,21 +119,16 @@ const styles = StyleSheet.create({
     fontWeight: fontWeight.bold,
     color: colors.textPrimary,
   },
-  academy: {
+  weightClass: {
     fontSize: typography.micro,
     fontWeight: fontWeight.semiBold,
     color: colors.gold,
     letterSpacing: 0.5,
   },
-  ratingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  ratingText: {
+  meta: {
     fontSize: typography.micro,
     fontWeight: fontWeight.medium,
     color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
 });

@@ -1,20 +1,15 @@
 /**
  * SUG Grappling — Athletes Service
  *
- * Reads athletes from the public.athletes Supabase table and maps rows
- * permissively into the UI types. Uses `select('*')` because the exact
- * schema is admin-driven; missing columns are tolerated.
- *
- * Errors are surfaced to the screen verbatim so schema/connection
- * problems are diagnosable. No mock fallback inside the service.
+ * Reads athletes from public.athletes. The `weightClass` column is stored
+ * camelCase in the DB, so it must be quoted in PostgREST selects.
  */
 import { supabase } from '../lib/supabase';
 import type { AthleteRow } from '../types/database';
-import type {
-  Athlete,
-  AthleteCategory,
-  AthleteProfile,
-} from '../types/types';
+import type { Athlete, AthleteProfile } from '../types/types';
+
+const ATHLETE_COLUMNS =
+  'id, name, "weightClass", record, status, rank, avatar_url, created_at';
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -32,77 +27,63 @@ function pickNumber(...values: Array<number | null | undefined>): number | undef
   return undefined;
 }
 
-function normalizeCategory(value: string | null | undefined): AthleteCategory | undefined {
-  if (!value) return undefined;
-  const v = value.toLowerCase().replace(/[\s-]/g, '_');
-  if (v === 'pro_league' || v === 'pro') return 'pro_league';
-  if (v === 'top_rated' || v === 'top') return 'top_rated';
-  if (v === 'all') return 'all';
-  return undefined;
-}
-
-function logError(scope: string, error: unknown) {
-  console.error(`[athletes] ${scope}`, error);
-}
-
 // ─── Row → UI mappers ────────────────────────────────────────
 
 export function mapRowToAthlete(row: AthleteRow): Athlete {
-  const name =
-    pickString(row.name, row.full_name, row.nickname) ?? 'Unknown Athlete';
-  const image = pickString(row.avatar_url, row.image_url, row.hero_image_url) ?? '';
-
   return {
     id: row.id,
-    name,
-    image,
-    gym: pickString(row.gym, row.academy),
-    country: pickString(row.country) ?? undefined,
-    countryCode: pickString(row.country_code) ?? undefined,
-    ranking: pickNumber(row.ranking, row.rank),
-    academy: pickString(row.academy, row.gym),
-    rating: pickNumber(row.rating),
-    weightClass: pickString(row.weight_class),
-    category: normalizeCategory(row.category),
+    name: pickString(row.name) ?? 'Unknown Athlete',
+    image: pickString(row.avatar_url) ?? '',
+    weightClass: pickString(row.weightClass),
+    record: pickString(row.record),
+    rank: pickNumber(row.rank),
+    status: pickString(row.status),
   };
 }
 
 export function mapRowToAthleteProfile(row: AthleteRow): AthleteProfile {
-  const name =
-    pickString(row.name, row.full_name, row.nickname) ?? 'Unknown Athlete';
-  const avatar =
-    pickString(row.avatar_url, row.image_url, row.hero_image_url) ?? '';
-
   return {
     id: row.id,
-    name,
-    nickname: pickString(row.nickname),
-    academy: pickString(row.academy, row.gym) ?? '',
-    country: pickString(row.country) ?? '',
-    belt: pickString(row.belt) ?? '',
-    avatar,
-    bio: pickString(row.bio) ?? '',
-    stats: {
-      fights: pickNumber(row.fights) ?? 0,
-      wins: pickNumber(row.wins) ?? 0,
-      losses: pickNumber(row.losses) ?? 0,
-    },
-    pastFights: [],
-    eventsParticipated: [],
+    name: pickString(row.name) ?? 'Unknown Athlete',
+    avatar: pickString(row.avatar_url) ?? '',
+    weightClass: pickString(row.weightClass),
+    record: pickString(row.record),
+    rank: pickNumber(row.rank),
+    status: pickString(row.status),
   };
 }
 
 // ─── Public API ──────────────────────────────────────────────
 
 export async function listAthletes(): Promise<Athlete[]> {
-  const { data, error } = await supabase.from('athletes').select('*');
+  const { data, error } = await supabase
+    .from('athletes')
+    .select(ATHLETE_COLUMNS)
+    .order('rank', { ascending: true, nullsFirst: false });
 
   if (error) {
-    logError('listAthletes', error);
     throw new Error(error.message);
   }
-  console.info('[athletes] listAthletes rows=', data?.length ?? 0);
-  return (data ?? []).map((row) => mapRowToAthlete(row as AthleteRow));
+  return ((data ?? []) as AthleteRow[]).map(mapRowToAthlete);
+}
+
+/**
+ * Returns up to 10 active athletes ordered by rank for the Home screen
+ * "Featured Athletes" rail. There is no `featured` column yet, so we use
+ * status='active' as the filter.
+ */
+export async function listFeaturedAthletes(): Promise<Athlete[]> {
+  const { data, error } = await supabase
+    .from('athletes')
+    .select(ATHLETE_COLUMNS)
+    .eq('status', 'active')
+    .order('rank', { ascending: true, nullsFirst: false })
+    .limit(10);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  return ((data ?? []) as AthleteRow[]).map(mapRowToAthlete);
 }
 
 export async function getAthleteById(
@@ -110,14 +91,12 @@ export async function getAthleteById(
 ): Promise<AthleteProfile | null> {
   const { data, error } = await supabase
     .from('athletes')
-    .select('*')
+    .select(ATHLETE_COLUMNS)
     .eq('id', id)
     .maybeSingle();
 
   if (error) {
-    logError('getAthleteById', error);
     throw new Error(error.message);
   }
-  console.info('[athletes] getAthleteById id=', id, 'found=', Boolean(data));
   return data ? mapRowToAthleteProfile(data as AthleteRow) : null;
 }

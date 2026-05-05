@@ -35,52 +35,36 @@ export interface EventRow extends Record<string, unknown> {
   updated_at?: string | null;
 }
 
-// ─── Athletes (loose — exact schema not yet confirmed) ───────
+// ─── Athletes (matches public.athletes schema) ───────────────
+// Note: weightClass is stored camelCase in the DB, so it must be quoted
+// in PostgREST selects (e.g. select('"weightClass"')).
 
 export interface AthleteRow {
   id: string;
   name?: string | null;
-  full_name?: string | null;
-  nickname?: string | null;
-  gym?: string | null;
-  academy?: string | null;
-  country?: string | null;
-  country_code?: string | null;
-  weight_class?: string | null;
-  belt?: string | null;
-  ranking?: number | null;
-  rank?: number | null;
-  rating?: number | null;
-  category?: string | null;
+  weightClass?: string | null;
+  record?: string | null;
   status?: string | null;
-  bio?: string | null;
-  fights?: number | null;
-  wins?: number | null;
-  losses?: number | null;
+  rank?: number | null;
   avatar_url?: string | null;
-  image_url?: string | null;
-  hero_image_url?: string | null;
   created_at?: string | null;
-  updated_at?: string | null;
 }
 
-// ─── Articles (loose — exact schema not yet confirmed) ───────
+// ─── Articles (matches public.articles schema) ───────────────
 
 export interface ArticleRow {
   id: string;
   title?: string | null;
   category?: string | null;
-  summary?: string | null;
-  content?: string | null;
-  hero_image_url?: string | null;
-  image_url?: string | null;
+  excerpt?: string | null;
+  body?: string | null;
+  cover_image_url?: string | null;
   author_name?: string | null;
   author_role?: string | null;
   author_avatar_url?: string | null;
-  read_time?: string | null;
-  tags?: string[] | null;
-  featured?: boolean | null;
   published_at?: string | null;
+  featured?: boolean | null;
+  status?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 }

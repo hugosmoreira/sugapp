@@ -34,19 +34,24 @@ export default function ArticleMetaRow({
 
       {/* Author row */}
       <View style={styles.authorRow}>
-        <Image
-          source={typeof author.avatar === 'number' ? author.avatar : { uri: author.avatar }}
-          style={styles.authorAvatar}
-          contentFit="cover"
-        />
+        {typeof author.avatar === 'number' ||
+        (typeof author.avatar === 'string' && author.avatar.trim().length > 0) ? (
+          <Image
+            source={typeof author.avatar === 'number' ? author.avatar : { uri: author.avatar }}
+            style={styles.authorAvatar}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={styles.authorAvatar} />
+        )}
         <View style={styles.authorInfo}>
           <View style={styles.authorNameRow}>
             <Text style={styles.authorName}>{author.name}</Text>
-            <Text style={styles.dateRight}>{date}</Text>
+            {date ? <Text style={styles.dateRight}>{date}</Text> : null}
           </View>
           <View style={styles.authorNameRow}>
             <Text style={styles.authorRole}>{author.role}</Text>
-            <Text style={styles.readTime}>{readTime}</Text>
+            {readTime ? <Text style={styles.readTime}>{readTime}</Text> : null}
           </View>
         </View>
       </View>

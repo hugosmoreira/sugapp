@@ -23,12 +23,13 @@ import UpcomingEventsSection from '../../src/components/home/UpcomingEventsSecti
 import FeaturedAthletesSection from '../../src/components/home/FeaturedAthletesSection';
 import LatestNewsSection from '../../src/components/home/LatestNewsSection';
 
-import { featuredAthletes, latestNews } from '../../src/data/mockData';
 import {
   getFeaturedEvent,
   listUpcomingEvents,
 } from '../../src/services/eventsService';
-import type { Event } from '../../src/types/types';
+import { listFeaturedAthletes } from '../../src/services/athletesService';
+import { listLatestArticles } from '../../src/services/articlesService';
+import type { Athlete, Event, NewsArticle } from '../../src/types/types';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -36,6 +37,8 @@ export default function HomeScreen() {
   const [upcoming, setUpcoming] = useState<Event[]>([]);
   const [loadingEvents, setLoadingEvents] = useState<boolean>(true);
   const [eventsError, setEventsError] = useState<string | null>(null);
+  const [featuredAthletes, setFeaturedAthletes] = useState<Athlete[]>([]);
+  const [latestArticles, setLatestArticles] = useState<NewsArticle[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -63,6 +66,36 @@ export default function HomeScreen() {
         setEventsError(message);
       } finally {
         if (mounted) setLoadingEvents(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await listFeaturedAthletes();
+        if (mounted) setFeaturedAthletes(data);
+      } catch {
+        if (mounted) setFeaturedAthletes([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const data = await listLatestArticles();
+        if (mounted) setLatestArticles(data);
+      } catch {
+        if (mounted) setLatestArticles([]);
       }
     })();
     return () => {
@@ -110,17 +143,31 @@ export default function HomeScreen() {
           />
         )}
 
-        {/* Divider */}
-        <View style={styles.divider} />
-
         {/* Featured Athletes */}
-        <FeaturedAthletesSection athletes={featuredAthletes} />
-
-        {/* Divider */}
-        <View style={styles.divider} />
+        {featuredAthletes.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <FeaturedAthletesSection
+              athletes={featuredAthletes}
+              onAthletePress={(athlete) =>
+                router.push(`/athlete/${athlete.id}` as const)
+              }
+            />
+          </>
+        )}
 
         {/* Latest News */}
-        <LatestNewsSection articles={latestNews} />
+        {latestArticles.length > 0 && (
+          <>
+            <View style={styles.divider} />
+            <LatestNewsSection
+              articles={latestArticles}
+              onArticlePress={(article) =>
+                router.push(`/news/${article.id}` as const)
+              }
+            />
+          </>
+        )}
 
         <View style={styles.bottomPadding} />
       </ScrollView>

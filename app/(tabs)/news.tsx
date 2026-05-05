@@ -1,9 +1,8 @@
 /**
  * News Screen — Editorial news feed with featured article and category tabs
  *
- * Pulls articles from Supabase via articlesService. Falls back to a
- * clearly-labeled mock preview only when the Supabase table is missing
- * (relation does not exist). Otherwise shows real loading / error / empty.
+ * Pulls published articles from Supabase via articlesService. No mock
+ * fallback: when there are no rows, renders an empty state.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -32,9 +31,15 @@ import NewsCategoryTabs, {
 import FeaturedNewsCard from '../../src/components/news/FeaturedNewsCard';
 import NewsArticleCard from '../../src/components/news/NewsArticleCard';
 import { listArticles } from '../../src/services/articlesService';
-import { isMissingTableError } from '../../src/types/database';
-import { newsFeed as mockNewsFeed } from '../../src/data/mockData';
 import type { NewsArticle } from '../../src/types/types';
+
+function pickFeatured(articles: NewsArticle[]): NewsArticle | undefined {
+  if (articles.length === 0) return undefined;
+  const flagged = articles.find((a) => a.featured === true);
+  if (flagged) return flagged;
+  // Fallback: newest by publishedAt (already sorted desc by service).
+  return articles[0];
+}
 
 export default function NewsScreen() {
   const insets = useSafeAreaInsets();
@@ -43,25 +48,18 @@ export default function NewsScreen() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [previewMode, setPreviewMode] = useState<boolean>(false);
 
   const fetchArticles = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setPreviewMode(false);
     try {
       const data = await listArticles();
       setArticles(data);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to load articles.';
-      if (isMissingTableError(message)) {
-        setPreviewMode(true);
-        setArticles(mockNewsFeed);
-      } else {
-        setError(message);
-        setArticles([]);
-      }
+      setError(message);
+      setArticles([]);
     } finally {
       setLoading(false);
     }
@@ -76,8 +74,10 @@ export default function NewsScreen() {
     return articles.filter((a) => a.category === activeTab);
   }, [articles, activeTab]);
 
-  const featuredArticle = filteredArticles.find((a) => a.featured);
-  const standardArticles = filteredArticles.filter((a) => !a.featured);
+  const featuredArticle = pickFeatured(filteredArticles);
+  const standardArticles = filteredArticles.filter(
+    (a) => a.id !== featuredArticle?.id,
+  );
 
   const navigateToArticle = (id: string) => {
     router.push(`/news/${id}` as const);
@@ -92,15 +92,6 @@ export default function NewsScreen() {
       >
         <NewsHeader />
         <NewsCategoryTabs activeTab={activeTab} onTabChange={setActiveTab} />
-
-        {previewMode && (
-          <View style={styles.previewBanner}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.gold} />
-            <Text style={styles.previewText}>
-              Sample preview — Articles table not yet connected in Supabase.
-            </Text>
-          </View>
-        )}
 
         {loading ? (
           <View style={styles.stateContainer}>
@@ -121,7 +112,8 @@ export default function NewsScreen() {
           </View>
         ) : filteredArticles.length === 0 ? (
           <View style={styles.stateContainer}>
-            <Text style={styles.stateText}>No articles found.</Text>
+            <Ionicons name="newspaper-outline" size={36} color={colors.muted} />
+            <Text style={styles.stateText}>No articles available yet.</Text>
           </View>
         ) : (
           <>
@@ -153,25 +145,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-  },
-  previewBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.gold,
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-  },
-  previewText: {
-    flex: 1,
-    fontSize: typography.caption,
-    fontWeight: fontWeight.medium,
-    color: colors.gold,
   },
   stateContainer: {
     paddingVertical: spacing.xxxxl,

@@ -1,7 +1,7 @@
 /**
- * AthleteProfileHeader — Avatar with gold ring, name, academy, country/belt line
+ * AthleteProfileHeader — Avatar with gold ring, name, weight class
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,35 +15,38 @@ interface AthleteProfileHeaderProps {
 }
 
 export default function AthleteProfileHeader({ athlete }: AthleteProfileHeaderProps) {
+  const [failed, setFailed] = useState(false);
+  const hasAvatar =
+    typeof athlete.avatar === 'number' ||
+    (typeof athlete.avatar === 'string' && athlete.avatar.trim().length > 0);
+  const showPlaceholder = !hasAvatar || failed;
+
   return (
     <View style={styles.container}>
-      {/* Avatar with gold ring */}
       <View style={styles.avatarWrapper}>
-        <Image
-          source={typeof athlete.avatar === 'number' ? athlete.avatar : { uri: athlete.avatar }}
-          style={styles.avatar}
-          contentFit="cover"
-          transition={200}
-        />
-        {/* Badge */}
+        {showPlaceholder ? (
+          <View style={[styles.avatar, styles.placeholder]}>
+            <Ionicons name="person-outline" size={48} color={colors.muted} />
+          </View>
+        ) : (
+          <Image
+            source={typeof athlete.avatar === 'number' ? athlete.avatar : { uri: athlete.avatar }}
+            style={styles.avatar}
+            contentFit="cover"
+            transition={200}
+            onError={() => setFailed(true)}
+          />
+        )}
         <View style={styles.badge}>
           <Ionicons name="checkmark-circle" size={18} color={colors.gold} />
         </View>
       </View>
 
-      {/* Name */}
       <Text style={styles.name}>{athlete.name}</Text>
 
-      {/* Academy */}
-      <Text style={styles.academy}>{athlete.academy}</Text>
-
-      {/* Country | Belt */}
-      <View style={styles.metaRow}>
-        <Ionicons name="globe-outline" size={13} color={colors.textSecondary} />
-        <Text style={styles.metaText}>
-          {athlete.country} | {athlete.belt}
-        </Text>
-      </View>
+      {athlete.weightClass ? (
+        <Text style={styles.weightClass}>{athlete.weightClass.toUpperCase()}</Text>
+      ) : null}
     </View>
   );
 }
@@ -68,6 +71,11 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: AVATAR_SIZE / 2,
   },
+  placeholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAlt,
+  },
   badge: {
     position: 'absolute',
     bottom: 0,
@@ -83,21 +91,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
-  academy: {
+  weightClass: {
     fontSize: typography.bodySmall,
-    fontWeight: fontWeight.medium,
+    fontWeight: fontWeight.semiBold,
     color: colors.gold,
     textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  metaText: {
-    fontSize: typography.caption,
-    fontWeight: fontWeight.regular,
-    color: colors.textSecondary,
+    letterSpacing: 0.5,
   },
 });

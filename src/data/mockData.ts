@@ -1,12 +1,12 @@
-/**
- * SUG Grappling — Mock Data
+﻿/**
+ * SUG Grappling â€” Mock Data
  *
  * Consolidated mock data for Home screen.
  * Structured to mirror future Supabase table shapes.
  */
 import { Event, EventDetail, FightCardEvent, ScheduleEvent, AthleteProfile, ArticleDetail, Athlete, NewsArticle } from '../types/types';
 
-// ─── Article Detail Data ─────────────────────────────────────
+// â”€â”€â”€ Article Detail Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const articleDetails: Record<string, ArticleDetail> = {
   'nf-001': {
@@ -56,7 +56,7 @@ export const articleDetails: Record<string, ArticleDetail> = {
 };
 
 
-// ─── Athlete Profile Data ────────────────────────────────────
+// â”€â”€â”€ Athlete Profile Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const athleteProfiles: Record<string, AthleteProfile> = {
   'ath-g1': {
@@ -94,7 +94,7 @@ export const athleteProfiles: Record<string, AthleteProfile> = {
     country: 'Brazil',
     belt: 'Black Belt',
     avatar: require('../../assets/images/athletes-grid/costa.png'),
-    bio: "An elite featherweight grappler from São Paulo, Sarah combines relentless pressure passing with creative leg lock attacks. She is a two-time Pan champion and rising star in the SUG circuit.",
+    bio: "An elite featherweight grappler from SÃ£o Paulo, Sarah combines relentless pressure passing with creative leg lock attacks. She is a two-time Pan champion and rising star in the SUG circuit.",
     stats: { fights: 19, wins: 16, losses: 3 },
     upcomingFight: {
       event: 'SUG 31: WOMEN\'S CHAMPIONSHIP',
@@ -114,16 +114,16 @@ export const athleteProfiles: Record<string, AthleteProfile> = {
   },
 };
 
-// ─── Schedule Data ───────────────────────────────────────────
+// â”€â”€â”€ Schedule Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const scheduleData: Record<string, ScheduleEvent> = {
   'evts-001': {
     id: 'evts-001',
     eventTitle: 'SUBMISSION UNDERGROUND',
-    eventSubtitle: 'SUG 29 • EVENT SCHEDULE',
+    eventSubtitle: 'SUG 29 â€¢ EVENT SCHEDULE',
     heroImage: require('../../assets/images/events/schedule-hero.png'),
     heroTitle: 'Mason Fowler vs. Vinny Magalhaes',
-    heroSubtitle: 'Heavyweight Championship Match • Mat 1',
+    heroSubtitle: 'Heavyweight Championship Match â€¢ Mat 1',
     mainCard: [
       {
         id: 'sched-001',
@@ -214,16 +214,16 @@ export const scheduleData: Record<string, ScheduleEvent> = {
   },
 };
 
-// ─── Fight Card Data ─────────────────────────────────────────
+// â”€â”€â”€ Fight Card Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const fightCardData: Record<string, FightCardEvent> = {
   'evts-001': {
     id: 'evts-001',
     eventTitle: 'SUBMISSION UNDERGROUND',
-    eventSubtitle: 'Tournament 24 • Live Now',
+    eventSubtitle: 'Tournament 24 â€¢ Live Now',
     heroImage: require('../../assets/images/events/fight-hero.png'),
     heroTitle: 'MASON VS HENDERSON',
-    heroSubtitle: 'SUG Absolute Championship • 5:00 EBI',
+    heroSubtitle: 'SUG Absolute Championship â€¢ 5:00 EBI',
     mainCard: [
       {
         id: 'mc-001',
@@ -264,29 +264,29 @@ export const fightCardData: Record<string, FightCardEvent> = {
       {
         id: 'prelim-001',
         title: 'SILVA vs JONES',
-        subtitle: '155 LBS • 3:00 PM PST',
+        subtitle: '155 LBS â€¢ 3:00 PM PST',
       },
       {
         id: 'prelim-002',
         title: 'GARCIA vs THOMPSON',
-        subtitle: '170 LBS • 3:30 PM PST',
+        subtitle: '170 LBS â€¢ 3:30 PM PST',
       },
       {
         id: 'prelim-003',
         title: 'PETROSYAN vs AOKI',
-        subtitle: '145 LBS • 4:00 PM PST',
+        subtitle: '145 LBS â€¢ 4:00 PM PST',
       },
     ],
   },
 };
 
-// ─── Event Detail Screen Data ────────────────────────────────
+// â”€â”€â”€ Event Detail Screen Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const eventDetails: Record<string, EventDetail> = {
   'evts-001': {
     id: 'evts-001',
     title: 'SUG 30: Championship Night',
-    subtitle: 'Portland, OR • Roseland Theater',
+    subtitle: 'Portland, OR â€¢ Roseland Theater',
     type: 'MAIN_EVENT',
     city: 'Portland',
     state: 'OR',
@@ -309,7 +309,7 @@ export const eventDetails: Record<string, EventDetail> = {
   'evts-002': {
     id: 'evts-002',
     title: 'SUG: Absolute Championship',
-    subtitle: 'Las Vegas, NV • UFC APEX CENTER',
+    subtitle: 'Las Vegas, NV â€¢ UFC APEX CENTER',
     type: 'OPEN_TOURNAMENT',
     city: 'Las Vegas',
     state: 'NV',
@@ -332,7 +332,7 @@ export const eventDetails: Record<string, EventDetail> = {
   'evts-003': {
     id: 'evts-003',
     title: 'West Coast Trials',
-    subtitle: 'San Diego, CA • SD SPORTS ARENA',
+    subtitle: 'San Diego, CA â€¢ SD SPORTS ARENA',
     type: 'QUALIFIER',
     city: 'San Diego',
     state: 'CA',
@@ -354,7 +354,7 @@ export const eventDetails: Record<string, EventDetail> = {
   },
 };
 
-// ─── Events Screen Data ──────────────────────────────────────
+// â”€â”€â”€ Events Screen Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const eventsScreenUpcoming: Event[] = [
   {
@@ -446,7 +446,7 @@ export const eventsScreenPast: Event[] = [
   },
 ];
 
-// ─── Featured Event ──────────────────────────────────────────
+// â”€â”€â”€ Featured Event â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const featuredEvent: Event = {
   id: 'evt-001',
@@ -460,7 +460,7 @@ export const featuredEvent: Event = {
     'The premier submission grappling event returns to Portland with an all-star card.',
 };
 
-// ─── Upcoming Events ─────────────────────────────────────────
+// â”€â”€â”€ Upcoming Events â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const upcomingEvents: Event[] = [
   {
@@ -515,7 +515,7 @@ export const upcomingEvents: Event[] = [
   },
 ];
 
-// ─── Featured Athletes ───────────────────────────────────────
+// â”€â”€â”€ Featured Athletes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const featuredAthletes: Athlete[] = [
   {
@@ -568,7 +568,7 @@ export const featuredAthletes: Athlete[] = [
   },
 ];
 
-// ─── Latest News ─────────────────────────────────────────────
+// â”€â”€â”€ Latest News â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const latestNews: NewsArticle[] = [
   {
@@ -577,7 +577,7 @@ export const latestNews: NewsArticle[] = [
     category: 'COMPETITION',
     image: require('../../assets/images/news/competition.png'),
     publishedAt: '2 hours ago',
-    summary:
+    excerpt:
       'Major rule changes announced for the upcoming SUG absolute division bracket format.',
   },
   {
@@ -586,7 +586,7 @@ export const latestNews: NewsArticle[] = [
     category: 'TRAINING',
     image: require('../../assets/images/news/training.png'),
     publishedAt: '5 hours ago',
-    summary:
+    excerpt:
       'Expert tips and training strategies for your debut in submission-only competition.',
   },
   {
@@ -595,7 +595,7 @@ export const latestNews: NewsArticle[] = [
     category: 'INTERVIEW',
     image: require('../../assets/images/news/interview.png'),
     publishedAt: '1 day ago',
-    summary:
+    excerpt:
       'An exclusive sit-down with the reigning SUG lightweight champion.',
   },
   {
@@ -604,7 +604,7 @@ export const latestNews: NewsArticle[] = [
     category: 'HIGHLIGHTS',
     image: require('../../assets/images/news/competition.png'),
     publishedAt: '2 days ago',
-    summary:
+    excerpt:
       'Relive the most spectacular finishes from last month\'s championship card.',
   },
   {
@@ -613,12 +613,12 @@ export const latestNews: NewsArticle[] = [
     category: 'ANNOUNCEMENT',
     image: require('../../assets/images/news/training.png'),
     publishedAt: '3 days ago',
-    summary:
+    excerpt:
       'All future SUG events will be broadcast live on FloGrappling.',
   },
 ];
 
-// ─── Athletes Grid Data ──────────────────────────────────────
+// â”€â”€â”€ Athletes Grid Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const athletesGrid: Athlete[] = [
   {
@@ -628,7 +628,7 @@ export const athletesGrid: Athlete[] = [
     rating: 4.9,
     weightClass: 'Lightweight',
     country: 'USA',
-    countryCode: '🇺🇸',
+    countryCode: 'ðŸ‡ºðŸ‡¸',
     image: require('../../assets/images/athletes-grid/rivera.png'),
     category: 'pro_league',
   },
@@ -639,7 +639,7 @@ export const athletesGrid: Athlete[] = [
     rating: 5.0,
     weightClass: 'Featherweight',
     country: 'Brazil',
-    countryCode: '🇧🇷',
+    countryCode: 'ðŸ‡§ðŸ‡·',
     image: require('../../assets/images/athletes-grid/costa.png'),
     category: 'top_rated',
   },
@@ -650,7 +650,7 @@ export const athletesGrid: Athlete[] = [
     rating: 4.8,
     weightClass: 'Heavyweight',
     country: 'USA',
-    countryCode: '🇺🇸',
+    countryCode: 'ðŸ‡ºðŸ‡¸',
     image: require('../../assets/images/athletes-grid/thorne.png'),
     category: 'pro_league',
   },
@@ -661,7 +661,7 @@ export const athletesGrid: Athlete[] = [
     rating: 4.7,
     weightClass: 'Flyweight',
     country: 'Japan',
-    countryCode: '🇯🇵',
+    countryCode: 'ðŸ‡¯ðŸ‡µ',
     image: require('../../assets/images/athletes-grid/tanaka.png'),
     category: 'top_rated',
   },
@@ -672,7 +672,7 @@ export const athletesGrid: Athlete[] = [
     rating: 4.9,
     weightClass: 'Middleweight',
     country: 'France',
-    countryCode: '🇫🇷',
+    countryCode: 'ðŸ‡«ðŸ‡·',
     image: require('../../assets/images/athletes-grid/bernard.png'),
     category: 'pro_league',
   },
@@ -683,13 +683,13 @@ export const athletesGrid: Athlete[] = [
     rating: 4.6,
     weightClass: 'Welterweight',
     country: 'Canada',
-    countryCode: '🇨🇦',
+    countryCode: 'ðŸ‡¨ðŸ‡¦',
     image: require('../../assets/images/athletes-grid/oconnor.png'),
     category: 'all',
   },
 ];
 
-// ─── News Feed Data ──────────────────────────────────────────
+// â”€â”€â”€ News Feed Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const newsFeed: NewsArticle[] = [
   {
@@ -699,7 +699,7 @@ export const newsFeed: NewsArticle[] = [
     image: require('../../assets/images/news-feed/championship.png'),
     publishedAt: 'Oct 24, 2023',
     date: 'OCT 24, 2023',
-    summary:
+    excerpt:
       'The final stage of the season is here, bringing together the elite athletes for a historic...',
     featured: true,
   },
@@ -710,7 +710,7 @@ export const newsFeed: NewsArticle[] = [
     image: require('../../assets/images/news-feed/training.png'),
     publishedAt: 'Oct 22, 2023',
     date: 'Oct 22, 2023',
-    summary:
+    excerpt:
       'Discover the science behind the new training protocols adopted by top-tier performers this...',
   },
   {
@@ -720,7 +720,7 @@ export const newsFeed: NewsArticle[] = [
     image: require('../../assets/images/news-feed/nutrition.png'),
     publishedAt: 'Oct 21, 2023',
     date: 'Oct 21, 2023',
-    summary:
+    excerpt:
       'Top nutritionists break down the most common misconceptions in sports dieting and performance...',
   },
   {
@@ -730,7 +730,8 @@ export const newsFeed: NewsArticle[] = [
     image: require('../../assets/images/news-feed/stadium.png'),
     publishedAt: 'Oct 19, 2023',
     date: 'Oct 19, 2023',
-    summary:
+    excerpt:
       'The committee has revealed the five cities that will host the international qualifiers next summer.',
   },
 ];
+

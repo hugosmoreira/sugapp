@@ -1,11 +1,13 @@
 /**
- * FeaturedNewsCard — Large featured article card with image, FEATURED badge, title, summary
+ * FeaturedNewsCard — Large featured article card with image, FEATURED badge, title, excerpt
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography, fontWeight, radius } from '../../constants/theme';
 import { NewsArticle } from '../../types/types';
+import { formatArticleDate } from '../../utils/formatDate';
 
 interface FeaturedNewsCardProps {
   article: NewsArticle;
@@ -13,33 +15,43 @@ interface FeaturedNewsCardProps {
 }
 
 export default function FeaturedNewsCard({ article, onPress }: FeaturedNewsCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const hasImage =
+    typeof article.image === 'number' ||
+    (typeof article.image === 'string' && article.image.trim().length > 0);
+  const showPlaceholder = !hasImage || imageFailed;
+  const formattedDate = formatArticleDate(article.publishedAt || article.date);
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
-      {/* Image */}
-      <Image
-        source={typeof article.image === 'number' ? article.image : { uri: article.image }}
-        style={styles.image}
-        contentFit="cover"
-        transition={200}
-      />
+      {showPlaceholder ? (
+        <View style={[styles.image, styles.placeholder]}>
+          <Ionicons name="image-outline" size={40} color={colors.muted} />
+        </View>
+      ) : (
+        <Image
+          source={typeof article.image === 'number' ? article.image : { uri: article.image }}
+          style={styles.image}
+          contentFit="cover"
+          transition={200}
+          onError={() => setImageFailed(true)}
+        />
+      )}
 
-      {/* Meta row: FEATURED badge + date */}
       <View style={styles.metaRow}>
         <View style={styles.featuredBadge}>
           <Text style={styles.featuredText}>FEATURED</Text>
         </View>
-        <Text style={styles.date}>{article.date || article.publishedAt}</Text>
+        {formattedDate ? <Text style={styles.date}>{formattedDate}</Text> : null}
       </View>
 
-      {/* Title */}
       <Text style={styles.title}>{article.title}</Text>
 
-      {/* Summary */}
-      {article.summary && (
-        <Text style={styles.summary} numberOfLines={2}>
-          {article.summary}
+      {article.excerpt ? (
+        <Text style={styles.excerpt} numberOfLines={3}>
+          {article.excerpt}
         </Text>
-      )}
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -52,9 +64,14 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 180,
+    height: 220,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
+  },
+  placeholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceAlt,
   },
   metaRow: {
     flexDirection: 'row',
@@ -84,7 +101,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     lineHeight: 24,
   },
-  summary: {
+  excerpt: {
     fontSize: typography.bodySmall,
     fontWeight: fontWeight.regular,
     color: colors.textSecondary,

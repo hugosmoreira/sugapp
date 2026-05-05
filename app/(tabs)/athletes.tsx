@@ -31,8 +31,6 @@ import AthletesFilters, {
 } from '../../src/components/athletes/AthletesFilters';
 import AthletesGrid from '../../src/components/athletes/AthletesGrid';
 import { listAthletes } from '../../src/services/athletesService';
-import { isMissingTableError } from '../../src/types/database';
-import { athletesGrid as mockAthletes } from '../../src/data/mockData';
 import type { Athlete } from '../../src/types/types';
 
 export default function AthletesScreen() {
@@ -42,25 +40,18 @@ export default function AthletesScreen() {
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [previewMode, setPreviewMode] = useState<boolean>(false);
 
   const fetchAthletes = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setPreviewMode(false);
     try {
       const data = await listAthletes();
       setAthletes(data);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Failed to load athletes.';
-      if (isMissingTableError(message)) {
-        setPreviewMode(true);
-        setAthletes(mockAthletes);
-      } else {
-        setError(message);
-        setAthletes([]);
-      }
+      setError(message);
+      setAthletes([]);
     } finally {
       setLoading(false);
     }
@@ -78,8 +69,7 @@ export default function AthletesScreen() {
       result = result.filter(
         (a) =>
           a.name.toLowerCase().includes(q) ||
-          (a.academy && a.academy.toLowerCase().includes(q)) ||
-          (a.country && a.country.toLowerCase().includes(q)),
+          (a.weightClass && a.weightClass.toLowerCase().includes(q)),
       );
     }
 
@@ -102,15 +92,6 @@ export default function AthletesScreen() {
         <AthletesHeader />
         <AthletesSearch value={search} onChangeText={setSearch} />
         <AthletesFilters active={filter} onFilterChange={setFilter} />
-
-        {previewMode && (
-          <View style={styles.previewBanner}>
-            <Ionicons name="information-circle-outline" size={16} color={colors.gold} />
-            <Text style={styles.previewText}>
-              Sample preview — Athletes table not yet connected in Supabase.
-            </Text>
-          </View>
-        )}
 
         {loading ? (
           <View style={styles.stateContainer}>
@@ -148,25 +129,6 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-  },
-  previewBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: colors.gold,
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-  },
-  previewText: {
-    flex: 1,
-    fontSize: typography.caption,
-    fontWeight: fontWeight.medium,
-    color: colors.gold,
   },
   stateContainer: {
     paddingVertical: spacing.xxxxl,
